@@ -10,18 +10,44 @@ import UIKit
 
 class HomeTableViewController: UITableViewController {
     
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        loadTweets()
-
-    }
+    
     var tweetArray =  [NSDictionary]()
     var numberofTweets: Int!
+    let myRefreshControl = UIRefreshControl()
     
     
-    func loadTweets(){
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        loadTweet()
+        
+        myRefreshControl.addTarget(self, action: #selector(loadTweet), for: .valueChanged)
+        tableView.refreshControl = myRefreshControl
+    }
+    
+    
+    @objc func loadTweet(){
+        numberofTweets = 20
         let myUrl = "https://api.twitter.com/1.1/statuses/home_timeline.json"
-        let myParams = ["count": 10]
+        let myParams = ["count": numberofTweets]
+        TwitterAPICaller.client?.getDictionariesRequest(url: myUrl, parameters: myParams, success: { (tweets: [NSDictionary]) in
+            
+            self.tweetArray.removeAll()
+            for tweet in tweets{
+                self.tweetArray.append(tweet)
+            }
+            self.tableView.reloadData()
+            self.myRefreshControl.endRefreshing()
+            
+        }, failure: {(Error) in
+            print("Could not retrieve tweets! Oh No!")
+            
+        })
+    }
+    
+    func loadMoreTweets(){
+        let myUrl = "https://api.twitter.com/1.1/statuses/home_timeline.json"
+        numberofTweets = numberofTweets + 20
+        let myParams = ["count": numberofTweets]
         TwitterAPICaller.client?.getDictionariesRequest(url: myUrl, parameters: myParams, success: { (tweets: [NSDictionary]) in
             
             self.tweetArray.removeAll()
@@ -34,6 +60,13 @@ class HomeTableViewController: UITableViewController {
             print("Could not retrieve tweets! Oh No!")
             
         })
+    }
+    
+    override func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath){
+        // #warning Incomplete implementation, return the number of rows
+        if indexPath.row + 1 == tweetArray.count{
+            loadMoreTweets()
+        }
     }
     
   
